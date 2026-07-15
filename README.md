@@ -242,3 +242,30 @@ uv run pytest
 
 The suite ports the Java unit-test fixtures (as raw query strings) and adds a
 structural marker check for each SPARQL feature.
+
+## License
+
+This project's own code is released under the [BSD 3-Clause License](LICENSE)
+(© Structural Bioinformatics Laboratory).
+
+The SPARQL→Mermaid rendering logic is a port of the `mermaid` package of
+[`sparql-examples-utils`](https://github.com/sib-swiss/sparql-examples-utils),
+which is distributed under the MIT License (© 2024 SIB Swiss Institute of
+Bioinformatics). That upstream copyright and permission notice is retained in
+the [NOTICE](NOTICE) file, as the MIT License requires.
+
+## Citation & acknowledgments
+
+This work would not exist without the
+[`sparql-examples-utils`](https://github.com/sib-swiss/sparql-examples-utils)
+project by the SIB Swiss Institute of Bioinformatics — its `mermaid` converter
+is the original this port faithfully reproduces. If you use `sparql-to-mermaid`,
+please also cite the upstream work:
+
+> Bolleman J., Emonet V., Altenhoff A., *et al.* *A large collection of
+> bioinformatics question-query pairs over federated knowledge graphs:
+> methodology and applications.* GigaScience, 2024.
+> doi:[10.1093/gigascience/giaf045](https://doi.org/10.1093/gigascience/giaf045)
+
+A [`CITATION.cff`](CITATION.cff) is provided for GitHub's "Cite this repository"
+feature; it references both this software and the paper above.

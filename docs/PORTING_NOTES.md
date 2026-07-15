@@ -7,6 +7,12 @@ its `convert -m` CLI, which embeds the diagram in per-example Markdown). The por
 exists so the same diagram generation is available to Python services (notably the
 [mcp-okn](https://github.com/sbl-sdsc/mcp-okn) server) without a JVM.
 
+The upstream `src/` code (including the `mermaid` package) is MIT-licensed
+(© 2024 SIB Swiss Institute of Bioinformatics); as a derivative work, this port
+retains that copyright and permission notice in the repo-root [`NOTICE`](../NOTICE)
+file. See the README's *Citation & acknowledgments* section for how to cite the
+upstream work.
+
 ## Design
 
 - **rdflib algebra, not a custom parser.** Queries are parsed with

@@ -1,0 +1,61 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: sparql-to-mermaid
+abstract: >-
+  Render a SPARQL query as a Mermaid graph diagram. Python port of the mermaid
+  converter in sparql-examples-utils.
+type: software
+authors:
+  - given-names: Peter W.
+    family-names: Rose
+    email: pwrose.ucsd@gmail.com
+repository-code: https://github.com/sbl-sdsc/sparql-to-mermaid
+license: BSD-3-Clause
+references:
+  - type: software
+    title: sparql-examples-utils
+    repository-code: https://github.com/sib-swiss/sparql-examples-utils
+    license: MIT
+    authors:
+      - name: SIB Swiss Institute of Bioinformatics
+  - type: article
+    title: >-
+      A large collection of bioinformatics question-query pairs over federated
+      knowledge graphs: methodology and applications
+    doi: 10.1093/gigascience/giaf045
+    year: 2024
+    authors:
+      - given-names: Jerven
+        family-names: Bolleman
+      - given-names: Vincent
+        family-names: Emonet
+      - given-names: Adrian
+        family-names: Altenhoff
+      - given-names: Amos
+        family-names: Bairoch
+      - given-names: Marie-Claude
+        family-names: Blatter
+      - given-names: Alan
+        family-names: Bridge
+      - given-names: Severine
+        family-names: Duvaud
+      - given-names: Elisabeth
+        family-names: Gasteiger
+      - given-names: Dmitry
+        family-names: Kuznetsov
+      - given-names: Sebastien
+        family-names: Moretti
+      - given-names: Pierre-Andre
+        family-names: Michel
+      - given-names: Anne
+        family-names: Morgat
+      - given-names: Marco
+        family-names: Pagni
+      - given-names: Nicole
+        family-names: Redaschi
+      - given-names: Monique
+        family-names: Zahn-Zabal
+      - given-names: Tarcisio
+        family-names: Mendes de Farias
+      - given-names: Ana Claudia
+        family-names: Sima
