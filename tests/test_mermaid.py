@@ -8,6 +8,7 @@ markers for each SPARQL feature.
 import pytest
 
 from sparql_to_mermaid import SparqlToMermaidError, to_mermaid, try_to_mermaid
+from sparql_to_mermaid.__main__ import main
 
 PFX = (
     "PREFIX ex: <http://example.org/>\n"
@@ -309,3 +310,67 @@ def test_malformed_query_raises():
 
 def test_try_variant_returns_none_on_error():
     assert try_to_mermaid("this is not sparql") is None
+
+
+# --- collapse_empty_unions ------------------------------------------------- #
+
+# Both arms are the same triple in opposite directions, so they reference the
+# same nodes (?s, ex:X). Mermaid places those nodes in the later arm, leaving the
+# earlier arm's box empty -- exactly what the flag cleans up.
+BIDIR_UNION = PFX + "SELECT ?s WHERE { { ?s ex:a ex:X } UNION { ex:X ex:a ?s } }"
+# Each arm has a node the other lacks (?o vs ?p), so neither box is ever empty.
+DISTINCT_UNION = PFX + "SELECT ?s WHERE { { ?s ex:a ?o } UNION { ?s ex:c ?p } }"
+
+
+def test_collapse_off_by_default_keeps_empty_arm():
+    out = to_mermaid(BIDIR_UNION)
+    assert "subgraph union0l" in out
+    assert "subgraph union0r" in out
+    assert "<== or ==>" in out
+
+
+def test_collapse_drops_empty_arm_and_connector():
+    out = to_mermaid(BIDIR_UNION, collapse_empty_unions=True)
+    # The arm Mermaid would render empty is unwrapped, style line and all ...
+    assert "subgraph union0l" not in out
+    assert "style union0l" not in out
+    # ... together with the now-dangling `or` connector ...
+    assert "<== or ==>" not in out
+    # ... but the outer Union box, the populated arm and *both* edges survive.
+    assert "subgraph union0[" in out
+    assert "subgraph union0r" in out
+    assert 'c2 --"ex:a"--> v1' in out
+    assert 'v1 --"ex:a"--> c2' in out
+
+
+def test_collapse_leaves_no_dangling_reference_to_dropped_arm():
+    out = to_mermaid(BIDIR_UNION, collapse_empty_unions=True)
+    assert "union0l" not in out
+
+
+def test_collapse_leaves_distinct_node_unions_untouched():
+    # Neither arm is empty, so enabling the flag is a no-op here.
+    plain = to_mermaid(DISTINCT_UNION)
+    collapsed = to_mermaid(DISTINCT_UNION, collapse_empty_unions=True)
+    assert collapsed == plain
+    assert "subgraph union0l" in collapsed
+    assert "subgraph union0r" in collapsed
+    assert "<== or ==>" in collapsed
+
+
+def test_cli_collapse_flag_drops_empty_arm(tmp_path, capsys):
+    qf = tmp_path / "q.rq"
+    qf.write_text(BIDIR_UNION)
+    assert main([str(qf), "--collapse-empty-unions"]) == 0
+    out = capsys.readouterr().out
+    assert "subgraph union0l" not in out
+    assert "<== or ==>" not in out
+
+
+def test_cli_keeps_empty_arm_without_flag(tmp_path, capsys):
+    qf = tmp_path / "q.rq"
+    qf.write_text(BIDIR_UNION)
+    assert main([str(qf)]) == 0
+    out = capsys.readouterr().out
+    assert "subgraph union0l" in out
+    assert "<== or ==>" in out

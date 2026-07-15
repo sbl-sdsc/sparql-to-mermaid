@@ -23,10 +23,15 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="wrap the output in a ```mermaid code fence",
     )
+    parser.add_argument(
+        "--collapse-empty-unions",
+        action="store_true",
+        help="drop UNION arm boxes Mermaid would render empty (and their `or` connector)",
+    )
     args = parser.parse_args(argv)
 
     query = sys.stdin.read() if args.file is None else _read(args.file)
-    diagram = to_mermaid(query)
+    diagram = to_mermaid(query, collapse_empty_unions=args.collapse_empty_unions)
     if args.fence:
         print("```mermaid")
         print(diagram)

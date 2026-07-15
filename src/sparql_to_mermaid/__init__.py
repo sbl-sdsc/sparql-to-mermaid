@@ -10,6 +10,7 @@ from __future__ import annotations
 import logging
 
 from .algebra import parse
+from .collapse import collapse_empty_union_arms
 from .errors import SparqlToMermaidError
 from .naming import Namer, Scope
 from .prefixes import PrefixMap
@@ -25,6 +26,7 @@ def to_mermaid(
     prefixes: dict[str, str] | None = None,
     base: str = "https://example.org/",
     well_known: bool = True,
+    collapse_empty_unions: bool = False,
 ) -> str:
     """Return a Mermaid diagram for ``query``.
 
@@ -35,6 +37,11 @@ def to_mermaid(
     shortens common life-science / semantic-web IRIs the query didn't declare
     (e.g. ``MONDO:``, ``CHEBI:``, ``biolink:``); pass ``False`` to shorten only
     against the query's own prefixes.
+
+    ``collapse_empty_unions`` (default ``False``, off for parity with the Java
+    tool) is a cosmetic pass: when both arms of a ``UNION`` reference the same
+    nodes, Mermaid renders one arm as an empty box; enabling this unwraps that
+    empty arm and drops the dangling ``or`` connector.
 
     Raises :class:`SparqlToMermaidError` if the query cannot be parsed/rendered.
     """
@@ -49,6 +56,8 @@ def to_mermaid(
     renderer.add_styles()
     renderer.render_variables()
     renderer.visit(algebra)
+    if collapse_empty_unions:
+        lines = collapse_empty_union_arms(lines)
     return "\n".join(lines)
 
 

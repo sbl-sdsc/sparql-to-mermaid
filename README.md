@@ -39,13 +39,18 @@ print(diagram)
   mirroring the Java behaviour of skipping queries it cannot transform.
 - `prefixes` (a `{name: namespace}` dict) supplements the query's own `PREFIX`
   declarations when shortening IRIs.
+- `collapse_empty_unions=True` (default `False`, off for parity with the Java
+  tool) is a cosmetic pass: when both arms of a `UNION` reference the same nodes,
+  Mermaid renders one arm as an empty box; enabling this unwraps that empty arm
+  (keeping its edges) and drops the dangling `or` connector.
 
 ### Command line
 
 ````text
-sparql-to-mermaid query.rq            # prints the diagram
-sparql-to-mermaid query.rq --fence    # wraps it in a ```mermaid code fence
-cat query.rq | sparql-to-mermaid      # reads stdin
+sparql-to-mermaid query.rq                       # prints the diagram
+sparql-to-mermaid query.rq --fence               # wraps it in a ```mermaid code fence
+sparql-to-mermaid query.rq --collapse-empty-unions  # drop empty UNION arm boxes
+cat query.rq | sparql-to-mermaid                 # reads stdin
 ````
 
 ## What is rendered
@@ -62,6 +67,13 @@ appears in several `GRAPH` blocks is drawn once inside each — a single shared
 node cannot belong to two Mermaid subgraphs and would make the boxes overlap.
 Variables stay shared across boxes, so a variable that joins two named graphs
 remains one node with edges crossing the box boundaries.
+
+The same single-node limitation shows up in `UNION`: when both arms reference the
+same nodes (e.g. one triple written in both directions), Mermaid can only place
+those nodes in one arm, so the other arm renders as an empty box tied on by the
+`or` connector. This is faithful to the Java tool and left as-is by default; pass
+`collapse_empty_unions=True` (or `--collapse-empty-unions`) to unwrap the empty
+arm and drop the connector.
 
 ### Example: a single named graph
 
