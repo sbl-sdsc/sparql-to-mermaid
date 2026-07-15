@@ -230,6 +230,12 @@ nodes, edges and structural blocks. Notable differences from the Java port:
 - **Parser coverage** differs from RDF4j: some vendor-specific queries
   (Wikidata/Blazegraph extensions) that RDF4j accepts may fail to parse here, and
   vice versa. Use `try_to_mermaid` to skip such queries gracefully.
+- **Named graphs (`GRAPH`)** — a port addition for multi-graph queries — render
+  as titled subgraph boxes (see the [multi-graph example](#example-a-multi-graph-federated-query)).
+  Constants are scoped per box, so a reference IRI shared across `GRAPH` blocks is
+  drawn once inside each (a single node cannot span two Mermaid subgraphs);
+  variables stay shared, so a variable joining two graphs stays one node with
+  edges crossing the box boundaries.
 
 See [`docs/PORTING_NOTES.md`](docs/PORTING_NOTES.md) for the full Java→Python
 module map and the design decisions behind the port.
