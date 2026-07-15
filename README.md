@@ -62,6 +62,79 @@ node cannot belong to two Mermaid subgraphs and would make the boxes overlap.
 Variables stay shared across boxes, so a variable that joins two named graphs
 remains one node with edges crossing the box boundaries.
 
+### Example: a single named graph
+
+A query against one named graph of the pancreas knowledge graph
+[`pankgraph`](https://frink.renci.org/), combining a basic graph pattern with an
+`OPTIONAL`, a compound `FILTER` (booleans, arithmetic and typed literals), and
+several `BIND` steps — including `xsd:double(…)` casts and a `REPLACE(…)` that
+strips a gene IRI down to its Ensembl id:
+
+```sparql
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX pk: <https://purl.org/okn/frink/kg/pankgraph/schema/>
+PREFIX biolink: <https://w3id.org/biolink/vocab/>
+SELECT ?g ?t2d ?nd ?t1d WHERE {
+  GRAPH <https://purl.org/okn/frink/kg/pankgraph> {
+    ?stmt rdf:subject ?ocr ; rdf:object <http://purl.obolibrary.org/obo/CL_0002079> ;
+          pk:type_2_diabetes__OCR_GeneActivityScore_mean ?t2d ;
+          pk:non_diabetic__OCR_GeneActivityScore_mean ?nd .
+    ?ocr biolink:located_in ?gene .
+    OPTIONAL { ?stmt pk:type_1_diabetes__OCR_GeneActivityScore_mean ?t1d }
+    BIND(xsd:double(?t2d) AS ?a) BIND(xsd:double(?nd) AS ?b)
+    FILTER(?b > 0 && ?a > 0 && (?a/?b >= 2.0 || ?a/?b <= 0.5))
+    BIND(REPLACE(STR(?gene), "http://identifiers.org/ensembl/", "") AS ?g)
+  }
+}
+```
+
+The whole pattern sits inside the single `GRAPH` box; the `OPTIONAL` nests as a
+blue dashed subgraph, the `FILTER` node feeds the variables it constrains, and
+each `BIND` reshapes a value with `--o` inputs and an `--as--o` output:
+
+```mermaid
+graph TD
+classDef projected fill:lightgreen;
+classDef literal fill:orange;
+classDef iri fill:yellow;
+  v2("?a")
+  v1("?b")
+  v3("?g"):::projected 
+  v4("?gene")
+  v5("?nd"):::projected 
+  v8("?ocr")
+  v7("?stmt")
+  v9("?t1d"):::projected 
+  v6("?t2d"):::projected 
+  subgraph graph0["GRAPH https://purl.org/okn/frink/kg/pankgraph"]
+    style graph0 fill:#f3e5f5,stroke:#8e24aa,stroke-width:2px;
+    graph0c2(["CL:0002079"]):::iri 
+    graph0f0[["?b > '0^^xsd:integer' && ?a > '0^^xsd:integer' && (?a / ?b >= '2.0^^xsd:decimal' || ?a / ?b <= '0.5^^xsd:decimal')"]]
+    graph0f0 --> v1
+    graph0f0 --> v2
+    v7 --"rdf:object"--> graph0c2
+    v7 --"rdf:subject"--> v8
+    v7 --"pk:non_diabetic__OCR_GeneActivityScore_mean"--> v5
+    v7 --"pk:type_2_diabetes__OCR_GeneActivityScore_mean"--> v6
+    v8 --"biolink:located_in"--> v4
+    subgraph optionalgraph00["(optional)"]
+    style optionalgraph00 fill:#bbf,stroke-dasharray: 5 5;
+      v7 -."pk:type_1_diabetes__OCR_GeneActivityScore_mean".-> v9
+    end
+    graph0bind0[/"xsd:double(?t2d)"/]
+    v6 --o graph0bind0
+    graph0bind0 --as--o v2
+    graph0bind1[/"xsd:double(?nd)"/]
+    v5 --o graph0bind1
+    graph0bind1 --as--o v1
+    graph0bind2[/"replace(str(?gene),'http://identifiers.org/ensembl/','')"/]
+    v4 --o graph0bind2
+    graph0bind2 --as--o v3
+  end
+```
+
 ### Example: a multi-graph federated query
 
 This query counts the genes shared between two equivalent disease concepts by
