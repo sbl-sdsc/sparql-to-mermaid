@@ -180,8 +180,9 @@ Each `GRAPH` becomes a self-contained box. The `?doid` and `?mondo` variables ar
 shared across boxes, so the `skos:exactMatch` and `biolink:related_to` joins draw
 as edges crossing the box boundaries, and each `FILTER(STRSTARTS(…))` renders as a
 node feeding the variable it constrains. The `rdkg` `UNION` writes the same triple
-in both directions, so its two arms reference the same nodes and Mermaid leaves one
-arm as an empty box (pass `--collapse-empty-unions` to drop it):
+in both directions, so its two arms reference the same nodes; this diagram is
+rendered with `--collapse-empty-unions`, which drops the arm Mermaid would otherwise
+leave as an empty box:
 
 ```mermaid
 graph TD
@@ -211,15 +212,11 @@ classDef iri fill:yellow;
     style graph2 fill:#f3e5f5,stroke:#8e24aa,stroke-width:2px;
     graph2c3(["biolink:Gene"]):::iri 
     subgraph uniongraph20[" Union "]
-    subgraph uniongraph20l[" "]
-      style uniongraph20l fill:#abf,stroke-dasharray: 3 3;
       v3 --"biolink:related_to"--> v2
-    end
     subgraph uniongraph20r[" "]
       style uniongraph20r fill:#abf,stroke-dasharray: 3 3;
       v2 --"biolink:related_to"--> v3
     end
-    uniongraph20r <== or ==> uniongraph20l
     end
     v3 --"a"--> graph2c3
     subgraph optionalgraph20["(optional)"]
