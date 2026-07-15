@@ -6,7 +6,8 @@ This is a pure-Python port of the SPARQL→Mermaid converter in the Java project
 [`sparql-examples-utils`](https://github.com/sib-swiss/sparql-examples-utils)
 (the `convert -m` / `mermaid` package). It is built on
 [rdflib](https://rdflib.readthedocs.io)'s SPARQL algebra, so it needs no JVM and
-can be used directly from Python services such as the `mcp-okn` server.
+can be used directly from Python services such as the
+[`mcp-okn`](https://github.com/sbl-sdsc/mcp-okn) server.
 
 ## Install
 
