@@ -13,7 +13,7 @@ from .algebra import expand_group_graph_pattern, name_of
 from .expr import collect_vars, expr_to_string
 from .naming import Namer, Scope, _is_synthetic
 from .paths import is_path, path_to_string
-from .prefixes import PrefixMap, classify
+from .prefixes import PrefixMap, classify, escape
 
 
 class Renderer:
@@ -80,6 +80,9 @@ class Renderer:
             self._add(f'{self.scope.var_ids[name]}("?{name}"){cls}')
         for key in sorted(self.scope.bnode_ids):
             self._add(f'{self.scope.bnode_ids[key]}((" "))')
+        self.render_constants()
+
+    def render_constants(self) -> None:
         for term in sorted(self.scope.const_ids, key=str):
             if term not in self.scope.used_as_node:
                 continue
@@ -122,7 +125,6 @@ class Renderer:
     _Slice = _Project
     _OrderBy = _Project
     _ToMultiSet = _Project
-    _Graph = _Project
     _Group = _Project
 
     def _AggregateJoin(self, node):
@@ -289,6 +291,33 @@ class Renderer:
         self.visit(node.p2)
         self.indent -= 2
         self._add("end")
+
+    def _Graph(self, node):
+        gid = f"graph{self.scope.prefix}{self._next('graph')}"
+        self._add(f'subgraph {gid}["{self._graph_label(node.term)}"]')
+        self.indent += 2
+        self._add(f"style {gid} fill:#f3e5f5,stroke:#8e24aa,stroke-width:2px;")
+        # A named graph draws with its own scope so its constants are boxed
+        # locally (a shared reference IRI can't live in two Mermaid subgraphs at
+        # once). Variables and blank nodes stay shared with the parent scope so
+        # a variable joining across graph boundaries remains a single node.
+        nested = Scope(prefix=gid)
+        nested.var_ids = self.scope.var_ids
+        nested.bnode_ids = self.scope.bnode_ids
+        nested.projected = self.scope.projected
+        Namer(nested).collect(node.p)
+        r = Renderer(nested, self.prefixes, self.lines, self.indent, self.counters)
+        r.agg_map = self.agg_map
+        r.skip_agg = self.skip_agg
+        r.render_constants()
+        r.visit(node.p)
+        self.indent -= 2
+        self._add("end")
+
+    def _graph_label(self, term) -> str:
+        if isinstance(term, Variable):
+            return f"GRAPH ?{term}"
+        return "GRAPH " + escape(self.prefixes.shorten(str(term)))
 
     def _ServiceGraphPattern(self, node):
         term = node.term

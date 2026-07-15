@@ -181,6 +181,35 @@ def test_minus_subgraph():
     assert "fill:pink" in out
 
 
+def test_graph_named_iri_subgraph():
+    out = to_mermaid(PFX + "SELECT ?s WHERE { GRAPH ex:g { ?s ex:p ?o } }")
+    assert 'subgraph graph0["GRAPH ex:g"]' in out  # IRI shortened via prefixes
+    assert "fill:#f3e5f5" in out
+    assert '--"ex:p"-->' in out  # inner pattern rendered inside the box
+
+
+def test_graph_variable_name():
+    out = to_mermaid(PFX + "SELECT ?s ?g WHERE { GRAPH ?g { ?s ex:p ?o } }")
+    assert 'GRAPH ?g' in out
+
+
+def test_graph_constants_are_scoped_per_block():
+    # An IRI used inside two different GRAPH blocks must be drawn as its own node
+    # inside each block -- a node can't belong to two Mermaid subgraphs at once,
+    # so a single shared node would make the boxes overlap. There must also be no
+    # orphan copy declared at the top level.
+    out = to_mermaid(
+        PFX
+        + "SELECT ?s WHERE { GRAPH ex:g1 { ?s ex:p ex:x } GRAPH ex:g2 { ?s ex:q ex:x } }"
+    )
+    assert 'subgraph graph0["GRAPH ex:g1"]' in out
+    assert 'subgraph graph1["GRAPH ex:g2"]' in out
+    # one local copy of ex:x per box (two total), not a single shared node
+    assert out.count('(["ex:x"])') == 2
+    # both copies are prefixed with their owning box's id (no bare top-level node)
+    assert "graph0c" in out and "graph1c" in out
+
+
 def test_exists_subgraph():
     out = to_mermaid(PFX + "SELECT ?s WHERE { ?s ex:a ?o FILTER EXISTS { ?s ex:b ?x } }")
     assert "Exists Clause" in out

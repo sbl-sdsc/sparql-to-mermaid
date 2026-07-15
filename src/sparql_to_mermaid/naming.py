@@ -62,6 +62,10 @@ class Namer:
 
     def __init__(self, scope: Scope):
         self.scope = scope
+        # While True, constants inside a GRAPH block are not registered in this
+        # scope: each GRAPH renders with its own scope that draws them locally,
+        # so registering them here too would leave orphan top-level nodes.
+        self._skip_const = False
 
     def collect(self, node) -> None:
         self._visit(node)
@@ -69,6 +73,8 @@ class Namer:
     # ------------------------------------------------------------------ #
     def _register(self, term, *, as_node: bool) -> None:
         if is_path(term) or _is_synthetic(term):
+            return
+        if self._skip_const and classify(term) == "const":
             return
         self.scope.id_of(term)
         if as_node and classify(term) == "const":
@@ -85,8 +91,16 @@ class Namer:
                         self.scope.projected.add(str(v))
             self._visit(node.p)
         elif name in ("Project", "Distinct", "Reduced", "Slice", "OrderBy",
-                      "Group", "ToMultiSet", "Graph"):
+                      "Group", "ToMultiSet"):
             self._visit(node.p)
+        elif name == "Graph":
+            # Variables/blank nodes still register here (they join across the
+            # GRAPH boundary and are declared once at the top); constants are
+            # left for the per-GRAPH scope to draw locally.
+            prev = self._skip_const
+            self._skip_const = True
+            self._visit(node.p)
+            self._skip_const = prev
         elif name == "AggregateJoin":
             for agg in node.A:
                 self.scope.var_id(agg.res)

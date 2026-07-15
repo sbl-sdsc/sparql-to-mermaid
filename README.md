@@ -55,6 +55,92 @@ blue dashed subgraph), `UNION`, `FILTER` (with `EXISTS` and `IN`), `BIND`,
 `VALUES`, `SERVICE`, `MINUS`, aggregates, and property paths. Projected
 variables, IRIs and literals get the `projected` / `iri` / `literal` styles.
 
+Named graphs (`GRAPH <iri> { … }` or `GRAPH ?g { … }`) render as a titled
+purple subgraph box. Constants are scoped to their box, so a reference IRI that
+appears in several `GRAPH` blocks is drawn once inside each — a single shared
+node cannot belong to two Mermaid subgraphs and would make the boxes overlap.
+Variables stay shared across boxes, so a variable that joins two named graphs
+remains one node with edges crossing the box boundaries.
+
+### Example: a multi-graph federated query
+
+This query counts the genes shared between two equivalent disease concepts by
+joining three named graphs of the [Proto-OKN](https://frink.renci.org/) federation
+— `ubergraph` (the disease cross-reference), `rdkg` (disease→gene relations), and
+`spoke-okn` (disease→gene associations):
+
+```sparql
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX biolink: <https://w3id.org/biolink/vocab/>
+PREFIX sokn: <https://purl.org/okn/frink/kg/spoke-okn/schema/>
+SELECT (COUNT(DISTINCT ?entrez) AS ?shared) WHERE {
+  GRAPH <https://purl.org/okn/frink/kg/ubergraph> {
+    <http://purl.obolibrary.org/obo/MONDO_0005258> skos:exactMatch <http://purl.obolibrary.org/obo/DOID_0060041> .
+  }
+  GRAPH <https://purl.org/okn/frink/kg/rdkg> {
+    { <http://purl.obolibrary.org/obo/MONDO_0005258> biolink:related_to ?rgene }
+    UNION { ?rgene biolink:related_to <http://purl.obolibrary.org/obo/MONDO_0005258> }
+    ?rgene a biolink:Gene .
+    BIND(REPLACE(STR(?rgene), '^.*/ncbigene/', '') AS ?entrez)
+  }
+  BIND(IRI(CONCAT('http://www.ncbi.nlm.nih.gov/gene/', ?entrez)) AS ?sgene)
+  GRAPH <https://purl.org/okn/frink/kg/spoke-okn> {
+    <http://purl.obolibrary.org/obo/DOID_0060041> sokn:ASSOCIATES_DaG ?sgene .
+  }
+}
+```
+
+Each `GRAPH` becomes a self-contained box; the `?entrez`/`?sgene` variables and
+the two `BIND` steps that reshape a gene identifier between graphs cross the box
+boundaries, and `count(?entrez)` feeds the projected `?shared` result:
+
+```mermaid
+graph TD
+classDef projected fill:lightgreen;
+classDef literal fill:orange;
+classDef iri fill:yellow;
+  v4("?entrez")
+  v5("?rgene")
+  v3("?sgene")
+  v1("?shared"):::projected 
+  subgraph graph0["GRAPH https://purl.org/okn/frink/kg/ubergraph"]
+    style graph0 fill:#f3e5f5,stroke:#8e24aa,stroke-width:2px;
+    graph0c3(["DOID:0060041"]):::iri 
+    graph0c1(["MONDO:0005258"]):::iri 
+    graph0c1 --"skos:exactMatch"--> graph0c3
+  end
+  subgraph graph1["GRAPH https://purl.org/okn/frink/kg/rdkg"]
+    style graph1 fill:#f3e5f5,stroke:#8e24aa,stroke-width:2px;
+    graph1c1(["MONDO:0005258"]):::iri 
+    graph1c4(["biolink:Gene"]):::iri 
+    subgraph uniongraph10[" Union "]
+    subgraph uniongraph10l[" "]
+      style uniongraph10l fill:#abf,stroke-dasharray: 3 3;
+      v5 --"biolink:related_to"--> graph1c1
+    end
+    subgraph uniongraph10r[" "]
+      style uniongraph10r fill:#abf,stroke-dasharray: 3 3;
+      graph1c1 --"biolink:related_to"--> v5
+    end
+    uniongraph10r <== or ==> uniongraph10l
+    end
+    v5 --"a"--> graph1c4
+    graph1bind0[/"replace(str(?rgene),'^.*/ncbigene/','')"/]
+    v5 --o graph1bind0
+    graph1bind0 --as--o v4
+  end
+  bind1[/"iri(concat('http://www.ncbi.nlm.nih.gov/gene/',?entrez))"/]
+  v4 --o bind1
+  bind1 --as--o v3
+  subgraph graph2["GRAPH https://purl.org/okn/frink/kg/spoke-okn"]
+    style graph2 fill:#f3e5f5,stroke:#8e24aa,stroke-width:2px;
+    graph2c1(["DOID:0060041"]):::iri 
+    graph2c1 --"sokn:ASSOCIATES_DaG"--> v3
+  end
+  bind2[/"count(?entrez)"/]
+  bind2 --as--o v1
+```
+
 ## Fidelity
 
 The bar is **structural equivalence**, not byte-for-byte identity with the Java
