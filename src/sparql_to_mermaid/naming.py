@@ -115,7 +115,9 @@ class Namer:
                 for var, val in binding.items():
                     self.scope.var_id(var)
                     if val is not None:
-                        self._register(val, as_node=True)
+                        # _values() draws its own value nodes; don't also emit
+                        # them as top-level constants (that leaves an orphan).
+                        self._register(val, as_node=False)
         else:
             for key in ("p", "p1", "p2"):
                 if key in node:

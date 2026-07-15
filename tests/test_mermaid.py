@@ -143,6 +143,19 @@ def test_values_node():
     assert "[/VALUES" in out
 
 
+def test_values_iri_has_no_orphan_constant_node():
+    # Regression: a VALUES value used only in the VALUES clause must not also be
+    # emitted as a dangling top-level constant node. Previously the Namer
+    # registered it with as_node=True, producing a duplicate `cN([...]):::iri`
+    # with no edges alongside the value node that _values() draws itself.
+    out = to_mermaid(PFX + "SELECT ?s WHERE { VALUES ?sub { ex:x } ?s ex:p ?sub }")
+    assert "[/VALUES ?sub" in out
+    # the value appears exactly once (only inside the VALUES value node)
+    assert out.count("ex:x") == 1
+    # ex:x is drawn only as a VALUES value node, never as a styled iri constant
+    assert ":::iri" not in out
+
+
 def test_service_subgraph():
     out = to_mermaid(
         PFX + "SELECT ?s WHERE { ?s ex:a ?o SERVICE <http://ep/sparql> { ?s ex:b ?x } }"
