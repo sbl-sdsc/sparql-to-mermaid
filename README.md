@@ -150,81 +150,83 @@ classDef iri fill:yellow;
 
 ### Example: a multi-graph federated query
 
-This query counts the genes shared between two equivalent disease concepts by
-joining three named graphs of the [Proto-OKN](https://frink.renci.org/) federation
-— `ubergraph` (the disease cross-reference), `rdkg` (disease→gene relations), and
-`spoke-okn` (disease→gene associations):
+This query starts from a disease *label*, resolves it to a DOID in `spoke-okn`,
+crosswalks that to the equivalent MONDO id through `ubergraph`, then pulls the
+related genes from `rdkg` — three named graphs of the
+[Proto-OKN](https://frink.renci.org/) federation joined on shared variables:
 
 ```sparql
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX biolink: <https://w3id.org/biolink/vocab/>
-PREFIX sokn: <https://purl.org/okn/frink/kg/spoke-okn/schema/>
-SELECT (COUNT(DISTINCT ?entrez) AS ?shared) WHERE {
+SELECT DISTINCT ?doid ?mondo ?gene ?symbol WHERE {
+  GRAPH <https://purl.org/okn/frink/kg/spoke-okn> {
+    ?doid a biolink:Disease ; rdfs:label "autism spectrum disorder" .
+    FILTER(STRSTARTS(STR(?doid), 'http://purl.obolibrary.org/obo/DOID_'))
+  }
   GRAPH <https://purl.org/okn/frink/kg/ubergraph> {
-    <http://purl.obolibrary.org/obo/MONDO_0005258> skos:exactMatch <http://purl.obolibrary.org/obo/DOID_0060041> .
+    ?mondo skos:exactMatch ?doid .
+    FILTER(STRSTARTS(STR(?mondo), 'http://purl.obolibrary.org/obo/MONDO_'))
   }
   GRAPH <https://purl.org/okn/frink/kg/rdkg> {
-    { <http://purl.obolibrary.org/obo/MONDO_0005258> biolink:related_to ?rgene }
-    UNION { ?rgene biolink:related_to <http://purl.obolibrary.org/obo/MONDO_0005258> }
-    ?rgene a biolink:Gene .
-    BIND(REPLACE(STR(?rgene), '^.*/ncbigene/', '') AS ?entrez)
-  }
-  BIND(IRI(CONCAT('http://www.ncbi.nlm.nih.gov/gene/', ?entrez)) AS ?sgene)
-  GRAPH <https://purl.org/okn/frink/kg/spoke-okn> {
-    <http://purl.obolibrary.org/obo/DOID_0060041> sokn:ASSOCIATES_DaG ?sgene .
+    { ?mondo biolink:related_to ?gene } UNION { ?gene biolink:related_to ?mondo }
+    ?gene a biolink:Gene .
+    OPTIONAL { ?gene rdfs:label ?symbol }
   }
 }
 ```
 
-Each `GRAPH` becomes a self-contained box; the `?entrez`/`?sgene` variables and
-the two `BIND` steps that reshape a gene identifier between graphs cross the box
-boundaries, and `count(?entrez)` feeds the projected `?shared` result:
+Each `GRAPH` becomes a self-contained box. The `?doid` and `?mondo` variables are
+shared across boxes, so the `skos:exactMatch` and `biolink:related_to` joins draw
+as edges crossing the box boundaries, and each `FILTER(STRSTARTS(…))` renders as a
+node feeding the variable it constrains. The `rdkg` `UNION` writes the same triple
+in both directions, so its two arms reference the same nodes and Mermaid leaves one
+arm as an empty box (pass `--collapse-empty-unions` to drop it):
 
 ```mermaid
 graph TD
 classDef projected fill:lightgreen;
 classDef literal fill:orange;
 classDef iri fill:yellow;
-  v4("?entrez")
-  v5("?rgene")
-  v3("?sgene")
-  v1("?shared"):::projected 
-  subgraph graph0["GRAPH https://purl.org/okn/frink/kg/ubergraph"]
+  v1("?doid"):::projected 
+  v3("?gene"):::projected 
+  v2("?mondo"):::projected 
+  v4("?symbol"):::projected 
+  subgraph graph0["GRAPH https://purl.org/okn/frink/kg/spoke-okn"]
     style graph0 fill:#f3e5f5,stroke:#8e24aa,stroke-width:2px;
-    graph0c3(["DOID:0060041"]):::iri 
-    graph0c1(["MONDO:0005258"]):::iri 
-    graph0c1 --"skos:exactMatch"--> graph0c3
+    graph0c2(["autism spectrum disorder"]):::literal 
+    graph0c4(["biolink:Disease"]):::iri 
+    graph0f0[["strstarts(str(?doid),'http://purl.obolibrary.org/obo/DOID_')"]]
+    graph0f0 --> v1
+    v1 --"rdfs:label"--> graph0c2
+    v1 --"a"--> graph0c4
   end
-  subgraph graph1["GRAPH https://purl.org/okn/frink/kg/rdkg"]
+  subgraph graph1["GRAPH https://purl.org/okn/frink/kg/ubergraph"]
     style graph1 fill:#f3e5f5,stroke:#8e24aa,stroke-width:2px;
-    graph1c1(["MONDO:0005258"]):::iri 
-    graph1c4(["biolink:Gene"]):::iri 
-    subgraph uniongraph10[" Union "]
-    subgraph uniongraph10l[" "]
-      style uniongraph10l fill:#abf,stroke-dasharray: 3 3;
-      v5 --"biolink:related_to"--> graph1c1
-    end
-    subgraph uniongraph10r[" "]
-      style uniongraph10r fill:#abf,stroke-dasharray: 3 3;
-      graph1c1 --"biolink:related_to"--> v5
-    end
-    uniongraph10r <== or ==> uniongraph10l
-    end
-    v5 --"a"--> graph1c4
-    graph1bind0[/"replace(str(?rgene),'^.*/ncbigene/','')"/]
-    v5 --o graph1bind0
-    graph1bind0 --as--o v4
+    graph1f1[["strstarts(str(?mondo),'http://purl.obolibrary.org/obo/MONDO_')"]]
+    graph1f1 --> v2
+    v2 --"skos:exactMatch"--> v1
   end
-  bind1[/"iri(concat('http://www.ncbi.nlm.nih.gov/gene/',?entrez))"/]
-  v4 --o bind1
-  bind1 --as--o v3
-  subgraph graph2["GRAPH https://purl.org/okn/frink/kg/spoke-okn"]
+  subgraph graph2["GRAPH https://purl.org/okn/frink/kg/rdkg"]
     style graph2 fill:#f3e5f5,stroke:#8e24aa,stroke-width:2px;
-    graph2c1(["DOID:0060041"]):::iri 
-    graph2c1 --"sokn:ASSOCIATES_DaG"--> v3
+    graph2c3(["biolink:Gene"]):::iri 
+    subgraph uniongraph20[" Union "]
+    subgraph uniongraph20l[" "]
+      style uniongraph20l fill:#abf,stroke-dasharray: 3 3;
+      v3 --"biolink:related_to"--> v2
+    end
+    subgraph uniongraph20r[" "]
+      style uniongraph20r fill:#abf,stroke-dasharray: 3 3;
+      v2 --"biolink:related_to"--> v3
+    end
+    uniongraph20r <== or ==> uniongraph20l
+    end
+    v3 --"a"--> graph2c3
+    subgraph optionalgraph20["(optional)"]
+    style optionalgraph20 fill:#bbf,stroke-dasharray: 5 5;
+      v3 -."rdfs:label".-> v4
+    end
   end
-  bind2[/"count(?entrez)"/]
-  bind2 --as--o v1
 ```
 
 ## Fidelity
