@@ -191,5 +191,10 @@ class _E:
         for key, value in e.items():
             if key in ("_vars", "distinct"):
                 continue
-            args.append(self.render(value))
+            # Variadic builtins (CONCAT, COALESCE, ...) hold their arguments in a
+            # list; render each element rather than str()-ing the raw list.
+            if isinstance(value, list):
+                args.extend(self.render(v) for v in value)
+            else:
+                args.append(self.render(value))
         return f"{fn}({','.join(args)})"

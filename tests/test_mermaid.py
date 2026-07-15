@@ -137,6 +137,17 @@ def test_bind_node_and_as_edge():
     assert "strafter(" in out
 
 
+def test_variadic_builtin_args_are_rendered():
+    # Regression: variadic builtins (CONCAT, COALESCE, ...) store their args in
+    # a list; that list must be rendered element-by-element, not str()-ed into a
+    # raw `[rdflib.term.Literal(...), rdflib.term.Variable(...)]` repr.
+    out = to_mermaid(
+        PFX + "SELECT ?y WHERE { ?x ex:p ?z BIND(CONCAT('a/', STR(?x)) AS ?y) }"
+    )
+    assert "concat('a/',str(?x))" in out
+    assert "rdflib.term" not in out
+
+
 def test_values_node():
     out = to_mermaid(PFX + "SELECT ?s WHERE { VALUES ?s { ex:a ex:b } ?s ex:p ?o }")
     assert "VALUES ?s" in out
