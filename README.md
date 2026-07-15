@@ -71,6 +71,9 @@ nodes, edges and structural blocks. Notable differences from the Java port:
   (Wikidata/Blazegraph extensions) that RDF4j accepts may fail to parse here, and
   vice versa. Use `try_to_mermaid` to skip such queries gracefully.
 
+See [`docs/PORTING_NOTES.md`](docs/PORTING_NOTES.md) for the full Java→Python
+module map and the design decisions behind the port.
+
 ## Tests
 
 ```bash
