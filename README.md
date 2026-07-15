@@ -39,18 +39,18 @@ print(diagram)
   mirroring the Java behaviour of skipping queries it cannot transform.
 - `prefixes` (a `{name: namespace}` dict) supplements the query's own `PREFIX`
   declarations when shortening IRIs.
-- `collapse_empty_unions=True` (default `False`, off for parity with the Java
-  tool) is a cosmetic pass: when both arms of a `UNION` reference the same nodes,
-  Mermaid renders one arm as an empty box; enabling this unwraps that empty arm
-  (keeping its edges) and drops the dangling `or` connector.
+- `collapse_empty_unions` (default `True`) is a cosmetic pass: when both arms of
+  a `UNION` reference the same nodes, Mermaid renders one arm as an empty box, so
+  this unwraps that empty arm (keeping its edges) and drops the dangling `or`
+  connector. Pass `False` for output identical to the Java tool.
 
 ### Command line
 
 ````text
-sparql-to-mermaid query.rq                       # prints the diagram
-sparql-to-mermaid query.rq --fence               # wraps it in a ```mermaid code fence
-sparql-to-mermaid query.rq --collapse-empty-unions  # drop empty UNION arm boxes
-cat query.rq | sparql-to-mermaid                 # reads stdin
+sparql-to-mermaid query.rq                          # prints the diagram
+sparql-to-mermaid query.rq --fence                  # wraps it in a ```mermaid code fence
+sparql-to-mermaid query.rq --no-collapse-empty-unions  # keep empty UNION arm boxes (Java-identical)
+cat query.rq | sparql-to-mermaid                    # reads stdin
 ````
 
 ## What is rendered
@@ -70,10 +70,11 @@ remains one node with edges crossing the box boundaries.
 
 The same single-node limitation shows up in `UNION`: when both arms reference the
 same nodes (e.g. one triple written in both directions), Mermaid can only place
-those nodes in one arm, so the other arm renders as an empty box tied on by the
-`or` connector. This is faithful to the Java tool and left as-is by default; pass
-`collapse_empty_unions=True` (or `--collapse-empty-unions`) to unwrap the empty
-arm and drop the connector.
+those nodes in one arm, so the other arm would render as an empty box tied on by
+the `or` connector. By default that empty arm is unwrapped (keeping its edges) and
+the `or` connector dropped; pass `collapse_empty_unions=False`
+(or `--no-collapse-empty-unions`) for output identical to the Java tool, which
+leaves the empty box in place.
 
 ### Example: a single named graph
 
@@ -180,9 +181,9 @@ Each `GRAPH` becomes a self-contained box. The `?doid` and `?mondo` variables ar
 shared across boxes, so the `skos:exactMatch` and `biolink:related_to` joins draw
 as edges crossing the box boundaries, and each `FILTER(STRSTARTS(…))` renders as a
 node feeding the variable it constrains. The `rdkg` `UNION` writes the same triple
-in both directions, so its two arms reference the same nodes; this diagram is
-rendered with `--collapse-empty-unions`, which drops the arm Mermaid would otherwise
-leave as an empty box:
+in both directions, so its two arms reference the same nodes; the arm Mermaid would
+otherwise leave as an empty box is dropped by default (pass
+`--no-collapse-empty-unions` to keep it):
 
 ```mermaid
 graph TD
@@ -247,6 +248,10 @@ nodes, edges and structural blocks. Notable differences from the Java port:
   drawn once inside each (a single node cannot span two Mermaid subgraphs);
   variables stay shared, so a variable joining two graphs stays one node with
   edges crossing the box boundaries.
+- **Empty `UNION` arms** are collapsed by default: when both arms reference the
+  same nodes the Java tool leaves one arm as an empty box, which this port unwraps.
+  Pass `collapse_empty_unions=False` (or `--no-collapse-empty-unions`) to reproduce
+  the Java output exactly.
 
 See [`docs/PORTING_NOTES.md`](docs/PORTING_NOTES.md) for the full Java→Python
 module map and the design decisions behind the port.

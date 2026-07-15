@@ -24,9 +24,10 @@ def main(argv: list[str] | None = None) -> int:
         help="wrap the output in a ```mermaid code fence",
     )
     parser.add_argument(
-        "--collapse-empty-unions",
-        action="store_true",
-        help="drop UNION arm boxes Mermaid would render empty (and their `or` connector)",
+        "--no-collapse-empty-unions",
+        dest="collapse_empty_unions",
+        action="store_false",
+        help="keep UNION arm boxes Mermaid renders empty (output identical to the Java tool)",
     )
     args = parser.parse_args(argv)
 
