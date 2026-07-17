@@ -173,6 +173,42 @@ def test_values_iri_has_no_orphan_constant_node():
     assert ":::iri" not in out
 
 
+# A 12-value VALUES list, used to exercise the max_values cap.
+_TWELVE = " ".join(f"ex:v{i}" for i in range(12))
+_MANY_VALUES = PFX + f"SELECT ?s WHERE {{ VALUES ?s {{ {_TWELVE} }} ?s ex:p ?o }}"
+
+
+def test_values_collapses_long_list_by_default():
+    out = to_mermaid(_MANY_VALUES)  # default max_values=5
+    assert "[/VALUES ?s/]" in out
+    # exactly 5 value nodes are drawn, then one "+N more" summary node
+    assert out.count("([\"ex:v") == 5
+    assert "([+7 more])" in out
+    # the 6th value (index 5) and beyond are not drawn
+    assert "ex:v5" not in out
+    assert "ex:v11" not in out
+
+
+def test_values_below_threshold_unchanged():
+    out = to_mermaid(PFX + "SELECT ?s WHERE { VALUES ?s { ex:a ex:b ex:c } ?s ex:p ?o }")
+    assert out.count("([\"ex:") == 3
+    assert "more])" not in out
+
+
+def test_values_no_cap_shows_all():
+    out = to_mermaid(_MANY_VALUES, max_values=None)
+    assert out.count("([\"ex:v") == 12
+    assert "more])" not in out
+
+
+def test_values_collapsed_value_has_no_orphan_constant():
+    # A value that is dropped by the cap and appears only in the VALUES clause
+    # must not resurface as a styled iri constant node elsewhere.
+    out = to_mermaid(_MANY_VALUES)
+    assert ":::iri" not in out
+    assert out.count("ex:v11") == 0
+
+
 def test_service_subgraph():
     out = to_mermaid(
         PFX + "SELECT ?s WHERE { ?s ex:a ?o SERVICE <http://ep/sparql> { ?s ex:b ?x } }"
@@ -380,3 +416,30 @@ def test_cli_no_collapse_flag_keeps_empty_arm(tmp_path, capsys):
     out = capsys.readouterr().out
     assert "subgraph union0l" in out
     assert "<== or ==>" in out
+
+
+def test_cli_collapses_values_by_default(tmp_path, capsys):
+    qf = tmp_path / "q.rq"
+    qf.write_text(_MANY_VALUES)
+    assert main([str(qf)]) == 0
+    out = capsys.readouterr().out
+    assert out.count("([\"ex:v") == 5
+    assert "([+7 more])" in out
+
+
+def test_cli_no_max_values_flag_shows_all(tmp_path, capsys):
+    qf = tmp_path / "q.rq"
+    qf.write_text(_MANY_VALUES)
+    assert main([str(qf), "--no-max-values"]) == 0
+    out = capsys.readouterr().out
+    assert out.count("([\"ex:v") == 12
+    assert "more])" not in out
+
+
+def test_cli_max_values_flag_sets_threshold(tmp_path, capsys):
+    qf = tmp_path / "q.rq"
+    qf.write_text(_MANY_VALUES)
+    assert main([str(qf), "--max-values", "5"]) == 0
+    out = capsys.readouterr().out
+    assert out.count("([\"ex:v") == 5
+    assert "([+7 more])" in out

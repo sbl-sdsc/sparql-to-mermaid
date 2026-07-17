@@ -29,10 +29,30 @@ def main(argv: list[str] | None = None) -> int:
         action="store_false",
         help="keep UNION arm boxes Mermaid renders empty (output identical to the Java tool)",
     )
+    parser.add_argument(
+        "--max-values",
+        dest="max_values",
+        type=int,
+        default=5,
+        metavar="N",
+        help="cap how many values a VALUES list draws before collapsing the rest "
+        "into a '+N more' node (default 5)",
+    )
+    parser.add_argument(
+        "--no-max-values",
+        dest="max_values",
+        action="store_const",
+        const=None,
+        help="draw every VALUES value (no collapsing)",
+    )
     args = parser.parse_args(argv)
 
     query = sys.stdin.read() if args.file is None else _read(args.file)
-    diagram = to_mermaid(query, collapse_empty_unions=args.collapse_empty_unions)
+    diagram = to_mermaid(
+        query,
+        collapse_empty_unions=args.collapse_empty_unions,
+        max_values=args.max_values,
+    )
     if args.fence:
         print("```mermaid")
         print(diagram)

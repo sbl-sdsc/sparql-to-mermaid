@@ -43,6 +43,11 @@ print(diagram)
   a `UNION` reference the same nodes, Mermaid renders one arm as an empty box, so
   this unwraps that empty arm (keeping its edges) and drops the dangling `or`
   connector. Pass `False` for output identical to the Java tool.
+- `max_values` (default `5`) caps how many values a `VALUES` clause draws. A long
+  inline list otherwise fans out to one node per value; once a list has more than
+  `max_values`, the first `max_values` are drawn and the tail collapses into a
+  single `+N more` node. Pass `None` to draw every value (the previous behaviour).
+  Lists of `max_values` or fewer are unaffected.
 
 ### Command line
 
@@ -50,6 +55,8 @@ print(diagram)
 sparql-to-mermaid query.rq                          # prints the diagram
 sparql-to-mermaid query.rq --fence                  # wraps it in a ```mermaid code fence
 sparql-to-mermaid query.rq --no-collapse-empty-unions  # keep empty UNION arm boxes (Java-identical)
+sparql-to-mermaid query.rq --max-values 20          # draw up to 20 VALUES values, then "+N more"
+sparql-to-mermaid query.rq --no-max-values          # draw every VALUES value (no collapsing)
 cat query.rq | sparql-to-mermaid                    # reads stdin
 ````
 
@@ -60,6 +67,12 @@ predicates as edge labels, `rdf:type` as `"a"`), `OPTIONAL` (dotted arrows in a
 blue dashed subgraph), `UNION`, `FILTER` (with `EXISTS` and `IN`), `BIND`,
 `VALUES`, `SERVICE`, `MINUS`, aggregates, and property paths. Projected
 variables, IRIs and literals get the `projected` / `iri` / `literal` styles.
+
+One deliberate difference from the Java tool: a `VALUES` clause with more than
+`max_values` (default 5) values no longer draws one node per value — it draws the
+first `max_values` and collapses the rest into a single `+N more` node, so a long
+inline list stays compact. Pass `--no-max-values` (or `max_values=None`) for the
+previous all-values output.
 
 Named graphs (`GRAPH <iri> { … }` or `GRAPH ?g { … }`) render as a titled
 purple subgraph box. Constants are scoped to their box, so a reference IRI that

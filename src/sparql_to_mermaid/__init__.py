@@ -27,6 +27,7 @@ def to_mermaid(
     base: str = "https://example.org/",
     well_known: bool = True,
     collapse_empty_unions: bool = True,
+    max_values: int | None = 5,
 ) -> str:
     """Return a Mermaid diagram for ``query``.
 
@@ -44,6 +45,12 @@ def to_mermaid(
     dangling ``or`` connector. Pass ``False`` for output identical to the Java
     tool, which leaves the empty box in place.
 
+    ``max_values`` (default ``5``) caps how many values a ``VALUES`` clause draws:
+    once a list has more than that, the first ``max_values`` are shown as nodes and
+    the tail collapses into a single ``+N more`` node, so a long inline list doesn't
+    fan out to one node per value. Pass ``None`` to draw every value (previous
+    behaviour). Lists of ``max_values`` or fewer are unaffected.
+
     Raises :class:`SparqlToMermaidError` if the query cannot be parsed/rendered.
     """
     algebra = parse(query)
@@ -52,7 +59,7 @@ def to_mermaid(
     Namer(scope).collect(algebra)
 
     lines = ["graph TD"]
-    renderer = Renderer(scope, prefix_map, lines)
+    renderer = Renderer(scope, prefix_map, lines, max_values=max_values)
     renderer.prescan_aggregates(algebra)
     renderer.add_styles()
     renderer.render_variables()
@@ -67,13 +74,14 @@ def try_to_mermaid(
     prefixes: dict[str, str] | None = None,
     base: str = "https://example.org/",
     well_known: bool = True,
+    max_values: int | None = 5,
 ) -> str | None:
     """Like :func:`to_mermaid` but returns ``None`` (and logs) on failure.
 
     Mirrors the Java behaviour of skipping queries that cannot be transformed.
     """
     try:
-        return to_mermaid(query, prefixes, base, well_known)
+        return to_mermaid(query, prefixes, base, well_known, max_values=max_values)
     except SparqlToMermaidError as exc:
         _log.info("Query can not be transformed to mermaid: %s", exc)
         return None

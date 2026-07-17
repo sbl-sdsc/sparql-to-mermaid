@@ -24,12 +24,15 @@ class Renderer:
         lines: list[str],
         indent: int = 2,
         counters: dict | None = None,
+        max_values: int | None = None,
     ):
         self.scope = scope
         self.prefixes = prefixes
         self.lines = lines
         self.indent = indent
         self.optional = False
+        # cap on how many VALUES value nodes to draw (None = unlimited)
+        self.max_values = max_values
         # counters shared across nested scopes so ids stay unique
         self.counters = counters if counters is not None else {}
         self.service_keys: dict = {}
@@ -201,7 +204,7 @@ class Renderer:
         self.indent += 2
         nested = Scope(prefix=exist_id)
         Namer(nested).collect(sub)
-        r = Renderer(nested, self.prefixes, self.lines, self.indent, self.counters)
+        r = Renderer(nested, self.prefixes, self.lines, self.indent, self.counters, self.max_values)
         r.visit(sub)
         r.render_variables()
         self.indent -= 2
@@ -241,16 +244,23 @@ class Renderer:
         self._add(f"{bind_id}[/VALUES {header}/]")
         for n in names:
             self._add(f"{bind_id}-->{self.scope.var_id(n)}")
-        value_n = 0
-        for binding in node.res:
-            for var, val in binding.items():
-                if val is None:
-                    continue
-                vid = f"{bind_id}{value_n}"
-                value_n += 1
-                label = self.prefixes.term(val, quote='"')
-                self._add(f"{vid}([{label}])")
-                self._add(f"{vid} --> {bind_id}")
+        vals = [val for binding in node.res for val in binding.values() if val is not None]
+        # Collapse a long tail into a single "+N more" node so a big VALUES list
+        # doesn't fan out to one node per value. The +1 guard avoids a pointless
+        # "+1 more" node that would save nothing.
+        limit = self.max_values
+        if limit is not None and len(vals) > limit + 1:
+            shown, remaining = vals[:limit], len(vals) - limit
+        else:
+            shown, remaining = vals, 0
+        for value_n, val in enumerate(shown):
+            vid = f"{bind_id}{value_n}"
+            label = self.prefixes.term(val, quote='"')
+            self._add(f"{vid}([{label}])")
+            self._add(f"{vid} --> {bind_id}")
+        if remaining:
+            self._add(f"{bind_id}more([+{remaining} more])")
+            self._add(f"{bind_id}more --> {bind_id}")
 
     # -- OPTIONAL / UNION / MINUS / SERVICE ----------------------------- #
     def _LeftJoin(self, node):
@@ -306,7 +316,7 @@ class Renderer:
         nested.bnode_ids = self.scope.bnode_ids
         nested.projected = self.scope.projected
         Namer(nested).collect(node.p)
-        r = Renderer(nested, self.prefixes, self.lines, self.indent, self.counters)
+        r = Renderer(nested, self.prefixes, self.lines, self.indent, self.counters, self.max_values)
         r.agg_map = self.agg_map
         r.skip_agg = self.skip_agg
         r.render_constants()
