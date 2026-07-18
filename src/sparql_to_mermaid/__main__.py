@@ -33,10 +33,10 @@ def main(argv: list[str] | None = None) -> int:
         "--max-values",
         dest="max_values",
         type=int,
-        default=5,
+        default=3,
         metavar="N",
         help="cap how many values a VALUES list draws before collapsing the rest "
-        "into a '+N more' node (default 5)",
+        "into a '+N more' node (default 3)",
     )
     parser.add_argument(
         "--no-max-values",

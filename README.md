@@ -43,7 +43,7 @@ print(diagram)
   a `UNION` reference the same nodes, Mermaid renders one arm as an empty box, so
   this unwraps that empty arm (keeping its edges) and drops the dangling `or`
   connector. Pass `False` for output identical to the Java tool.
-- `max_values` (default `5`) caps how many values a `VALUES` clause draws. A long
+- `max_values` (default `3`) caps how many values a `VALUES` clause draws. A long
   inline list otherwise fans out to one node per value; once a list has more than
   `max_values`, the first `max_values` are drawn and the tail collapses into a
   single `+N more` node. Pass `None` to draw every value (the previous behaviour).
@@ -69,7 +69,7 @@ blue dashed subgraph), `UNION`, `FILTER` (with `EXISTS` and `IN`), `BIND`,
 variables, IRIs and literals get the `projected` / `iri` / `literal` styles.
 
 One deliberate difference from the Java tool: a `VALUES` clause with more than
-`max_values` (default 5) values no longer draws one node per value — it draws the
+`max_values` (default 3) values no longer draws one node per value — it draws the
 first `max_values` and collapses the rest into a single `+N more` node, so a long
 inline list stays compact. Pass `--no-max-values` (or `max_values=None`) for the
 previous all-values output.

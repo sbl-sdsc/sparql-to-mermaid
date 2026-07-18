@@ -179,13 +179,13 @@ _MANY_VALUES = PFX + f"SELECT ?s WHERE {{ VALUES ?s {{ {_TWELVE} }} ?s ex:p ?o }
 
 
 def test_values_collapses_long_list_by_default():
-    out = to_mermaid(_MANY_VALUES)  # default max_values=5
+    out = to_mermaid(_MANY_VALUES)  # default max_values=3
     assert "[/VALUES ?s/]" in out
-    # exactly 5 value nodes are drawn, then one "+N more" summary node
-    assert out.count("([\"ex:v") == 5
-    assert "([+7 more])" in out
-    # the 6th value (index 5) and beyond are not drawn
-    assert "ex:v5" not in out
+    # exactly 3 value nodes are drawn, then one "+N more" summary node
+    assert out.count("([\"ex:v") == 3
+    assert "([+9 more])" in out
+    # the 4th value (index 3) and beyond are not drawn
+    assert "ex:v3" not in out
     assert "ex:v11" not in out
 
 
@@ -423,8 +423,8 @@ def test_cli_collapses_values_by_default(tmp_path, capsys):
     qf.write_text(_MANY_VALUES)
     assert main([str(qf)]) == 0
     out = capsys.readouterr().out
-    assert out.count("([\"ex:v") == 5
-    assert "([+7 more])" in out
+    assert out.count("([\"ex:v") == 3
+    assert "([+9 more])" in out
 
 
 def test_cli_no_max_values_flag_shows_all(tmp_path, capsys):

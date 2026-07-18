@@ -1,6 +1,6 @@
 [project]
 name = "sparql-to-mermaid"
-version = "0.4.0"
+version = "0.4.1"
 description = "Render a SPARQL query as a Mermaid graph diagram (Python port of sparql-examples-utils' mermaid converter)"
 readme = "README.md"
 requires-python = ">=3.10"

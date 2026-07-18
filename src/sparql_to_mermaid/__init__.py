@@ -27,7 +27,7 @@ def to_mermaid(
     base: str = "https://example.org/",
     well_known: bool = True,
     collapse_empty_unions: bool = True,
-    max_values: int | None = 5,
+    max_values: int | None = 3,
 ) -> str:
     """Return a Mermaid diagram for ``query``.
 
@@ -45,7 +45,7 @@ def to_mermaid(
     dangling ``or`` connector. Pass ``False`` for output identical to the Java
     tool, which leaves the empty box in place.
 
-    ``max_values`` (default ``5``) caps how many values a ``VALUES`` clause draws:
+    ``max_values`` (default ``3``) caps how many values a ``VALUES`` clause draws:
     once a list has more than that, the first ``max_values`` are shown as nodes and
     the tail collapses into a single ``+N more`` node, so a long inline list doesn't
     fan out to one node per value. Pass ``None`` to draw every value (previous
@@ -74,7 +74,7 @@ def try_to_mermaid(
     prefixes: dict[str, str] | None = None,
     base: str = "https://example.org/",
     well_known: bool = True,
-    max_values: int | None = 5,
+    max_values: int | None = 3,
 ) -> str | None:
     """Like :func:`to_mermaid` but returns ``None`` (and logs) on failure.
 
