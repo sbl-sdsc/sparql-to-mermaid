@@ -48,6 +48,12 @@ print(diagram)
   `max_values`, the first `max_values` are drawn and the tail collapses into a
   single `+N more` node. Pass `None` to draw every value (the previous behaviour).
   Lists of `max_values` or fewer are unaffected.
+- `portable` (default `False`) trades a little fidelity for maximum renderer
+  compatibility. An IRI in a namespace no prefix covers is compacted to a
+  synthetic `segment:local` CURIE (`reactome:R-HSA-163210`, `kg:prokn`) instead of
+  appearing as a raw `https://…` in a label, and the aggregate `--as--o` edge is
+  emitted in the conventional `--o|as|` pipe-label form. Reach for it when a
+  stricter or older Mermaid engine rejects the default (fully valid) output.
 
 ### Command line
 
@@ -57,6 +63,7 @@ sparql-to-mermaid query.rq --fence                  # wraps it in a ```mermaid c
 sparql-to-mermaid query.rq --no-collapse-empty-unions  # keep empty UNION arm boxes (Java-identical)
 sparql-to-mermaid query.rq --max-values 20          # draw up to 20 VALUES values, then "+N more"
 sparql-to-mermaid query.rq --no-max-values          # draw every VALUES value (no collapsing)
+sparql-to-mermaid query.rq --portable               # CURIE-compact IRIs + --o|as| edges for strict renderers
 cat query.rq | sparql-to-mermaid                    # reads stdin
 ````
 

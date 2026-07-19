@@ -347,6 +347,60 @@ def test_aggregate_bind():
     assert "sample(" not in out
 
 
+# --- portable mode --------------------------------------------------------- #
+
+# An IRI in a namespace no prefix (declared or well-known) covers.
+_UNPREFIXED = (
+    "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\n"
+    "SELECT ?s WHERE { GRAPH <https://purl.org/okn/frink/kg/prokn> { "
+    "?s rdfs:seeAlso <https://identifiers.org/reactome/R-HSA-163210> } }"
+)
+
+
+def test_portable_compacts_unprefixed_iri():
+    out = to_mermaid(_UNPREFIXED, portable=True)
+    # last segment becomes the local name, the segment before it a pseudo-prefix
+    assert "reactome:R-HSA-163210" in out
+    assert 'GRAPH kg:prokn' in out
+    # no raw URL survives in a label
+    assert "https://" not in out
+
+
+def test_default_keeps_full_unprefixed_iri():
+    # portable mode is opt-in; the default still emits the full IRI.
+    out = to_mermaid(_UNPREFIXED)
+    assert "https://identifiers.org/reactome/R-HSA-163210" in out
+    assert "reactome:R-HSA-163210" not in out
+
+
+def test_portable_leaves_known_prefixes_alone():
+    # a declared/well-known prefix still wins; compaction only fills the gap.
+    out = to_mermaid(_UNPREFIXED, portable=True)
+    assert "rdfs:seeAlso" in out
+
+
+_AGG = PFX + "SELECT ?s (COUNT(?o) AS ?n) WHERE { ?s ex:a ?o } GROUP BY ?s"
+
+
+def test_portable_rewrites_aggregate_edge():
+    out = to_mermaid(_AGG, portable=True)
+    assert "--o|as|" in out
+    assert "--as--o" not in out
+
+
+def test_default_keeps_as_edge():
+    assert "--as--o" in to_mermaid(_AGG)
+
+
+def test_cli_portable_flag(tmp_path, capsys):
+    qf = tmp_path / "q.rq"
+    qf.write_text(_UNPREFIXED)
+    assert main([str(qf), "--portable"]) == 0
+    out = capsys.readouterr().out
+    assert "reactome:R-HSA-163210" in out
+    assert "https://" not in out
+
+
 def test_no_dangling_node_references():
     """Every edge endpoint id must be declared as a node somewhere in output."""
     out = to_mermaid(PFX + "SELECT ?s WHERE { ?s ex:a ?o FILTER EXISTS { ?s ex:b ?x } }")

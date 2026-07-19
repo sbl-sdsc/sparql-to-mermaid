@@ -28,6 +28,7 @@ def to_mermaid(
     well_known: bool = True,
     collapse_empty_unions: bool = True,
     max_values: int | None = 3,
+    portable: bool = False,
 ) -> str:
     """Return a Mermaid diagram for ``query``.
 
@@ -51,15 +52,24 @@ def to_mermaid(
     fan out to one node per value. Pass ``None`` to draw every value (previous
     behaviour). Lists of ``max_values`` or fewer are unaffected.
 
+    ``portable`` (default ``False``) trades a little fidelity for maximum renderer
+    compatibility: IRIs with no known prefix are compacted to a synthetic CURIE
+    (``reactome:R-HSA-163210``) instead of appearing as a raw ``https://...`` in a
+    label, and the aggregate ``--as--o`` edge is emitted in the conventional
+    ``--o|as|`` pipe-label form. Use it when a stricter or older Mermaid engine
+    rejects the default output.
+
     Raises :class:`SparqlToMermaidError` if the query cannot be parsed/rendered.
     """
     algebra = parse(query)
-    prefix_map = PrefixMap.from_query(query, prefixes, well_known)
+    prefix_map = PrefixMap.from_query(
+        query, prefixes, well_known, compact_unknown=portable
+    )
     scope = Scope()
     Namer(scope).collect(algebra)
 
     lines = ["graph TD"]
-    renderer = Renderer(scope, prefix_map, lines, max_values=max_values)
+    renderer = Renderer(scope, prefix_map, lines, max_values=max_values, portable=portable)
     renderer.prescan_aggregates(algebra)
     renderer.add_styles()
     renderer.render_variables()
@@ -75,13 +85,17 @@ def try_to_mermaid(
     base: str = "https://example.org/",
     well_known: bool = True,
     max_values: int | None = 3,
+    portable: bool = False,
 ) -> str | None:
     """Like :func:`to_mermaid` but returns ``None`` (and logs) on failure.
 
     Mirrors the Java behaviour of skipping queries that cannot be transformed.
     """
     try:
-        return to_mermaid(query, prefixes, base, well_known, max_values=max_values)
+        return to_mermaid(
+            query, prefixes, base, well_known,
+            max_values=max_values, portable=portable,
+        )
     except SparqlToMermaidError as exc:
         _log.info("Query can not be transformed to mermaid: %s", exc)
         return None

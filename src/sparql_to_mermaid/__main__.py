@@ -45,6 +45,12 @@ def main(argv: list[str] | None = None) -> int:
         const=None,
         help="draw every VALUES value (no collapsing)",
     )
+    parser.add_argument(
+        "--portable",
+        action="store_true",
+        help="maximize renderer compatibility: compact unprefixed IRIs to synthetic "
+        "CURIEs (no raw URLs in labels) and emit the aggregate edge as '--o|as|'",
+    )
     args = parser.parse_args(argv)
 
     query = sys.stdin.read() if args.file is None else _read(args.file)
@@ -52,6 +58,7 @@ def main(argv: list[str] | None = None) -> int:
         query,
         collapse_empty_unions=args.collapse_empty_unions,
         max_values=args.max_values,
+        portable=args.portable,
     )
     if args.fence:
         print("```mermaid")

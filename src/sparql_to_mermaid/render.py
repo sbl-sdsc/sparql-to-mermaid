@@ -25,6 +25,7 @@ class Renderer:
         indent: int = 2,
         counters: dict | None = None,
         max_values: int | None = None,
+        portable: bool = False,
     ):
         self.scope = scope
         self.prefixes = prefixes
@@ -33,6 +34,10 @@ class Renderer:
         self.optional = False
         # cap on how many VALUES value nodes to draw (None = unlimited)
         self.max_values = max_values
+        # portable mode swaps atypical-but-valid syntax for the most widely
+        # supported equivalents (see the aggregate edge below); IRI compaction is
+        # handled by the PrefixMap this renderer was given.
+        self.portable = portable
         # counters shared across nested scopes so ids stay unique
         self.counters = counters if counters is not None else {}
         self.service_keys: dict = {}
@@ -205,7 +210,10 @@ class Renderer:
         self._add(f"style {parent_id}{exist_id} color:#000;")
         nested = Scope(prefix=exist_id)
         Namer(nested).collect(sub)
-        r = Renderer(nested, self.prefixes, self.lines, self.indent, self.counters, self.max_values)
+        r = Renderer(
+            nested, self.prefixes, self.lines, self.indent, self.counters,
+            self.max_values, self.portable,
+        )
         r.visit(sub)
         r.render_variables()
         self.indent -= 2
@@ -230,7 +238,12 @@ class Renderer:
         for var in source_vars:
             self._add(f"{self._id(var)} --o {bind_id}")
         if str(node.var) in self.scope.var_ids:
-            self._add(f"{bind_id} --as--o {self.scope.var_ids[str(node.var)]}")
+            target = self.scope.var_ids[str(node.var)]
+            # The circle-headed edge with an inline "as" label. The bare
+            # ``--as--o`` form is valid Mermaid but atypical; portable mode uses
+            # the conventional pipe-label form ``--o|as|`` (same circle marker).
+            edge = f"--o|as| {target}" if self.portable else f"--as--o {target}"
+            self._add(f"{bind_id} {edge}")
 
     # -- VALUES --------------------------------------------------------- #
     def _values(self, node):
@@ -322,7 +335,10 @@ class Renderer:
         nested.bnode_ids = self.scope.bnode_ids
         nested.projected = self.scope.projected
         Namer(nested).collect(node.p)
-        r = Renderer(nested, self.prefixes, self.lines, self.indent, self.counters, self.max_values)
+        r = Renderer(
+            nested, self.prefixes, self.lines, self.indent, self.counters,
+            self.max_values, self.portable,
+        )
         r.agg_map = self.agg_map
         r.skip_agg = self.skip_agg
         r.render_constants()

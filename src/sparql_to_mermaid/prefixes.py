@@ -34,9 +34,15 @@ class PrefixMap:
         self,
         namespaces: dict[str, str],
         fallback: dict[str, str] | None = None,
+        compact_unknown: bool = False,
     ):
         self._items = self._sorted(namespaces)
         self._fallback = self._sorted(fallback or {})
+        # In "portable" mode, an IRI that matches no known prefix is shortened to
+        # a synthetic ``segment:local`` CURIE instead of being emitted in full, so
+        # a raw ``https://...`` never lands inside a Mermaid label (stricter/older
+        # renderers can choke on the ``://`` and length).
+        self._compact_unknown = compact_unknown
 
     @staticmethod
     def _sorted(namespaces: dict[str, str]) -> list[tuple[str, str]]:
@@ -51,6 +57,7 @@ class PrefixMap:
         query: str,
         extra: dict[str, str] | None = None,
         well_known: bool = True,
+        compact_unknown: bool = False,
     ) -> "PrefixMap":
         namespaces: dict[str, str] = {}
         if extra:
@@ -58,7 +65,7 @@ class PrefixMap:
         for name, ns in _PREFIX_DECL.findall(query):
             namespaces[name] = ns
         fallback = dict(WELL_KNOWN_PREFIXES) if well_known else None
-        return cls(namespaces, fallback)
+        return cls(namespaces, fallback, compact_unknown=compact_unknown)
 
     def _shorten_iri(self, iri: str) -> str | None:
         for items in (self._items, self._fallback):
@@ -71,9 +78,37 @@ class PrefixMap:
         """Return ``prefix:local`` if a namespace matches, else the full IRI.
 
         Unquoted form, for contexts like function/cast names in an expression.
+        In portable mode an unmatched IRI is compacted to a synthetic CURIE
+        rather than returned in full.
         """
         short = self._shorten_iri(str(iri))
-        return short if short is not None else str(iri)
+        if short is not None:
+            return short
+        return self._compact_iri(str(iri)) if self._compact_unknown else str(iri)
+
+    @staticmethod
+    def _compact_iri(iri: str) -> str:
+        """Best-effort short label for an IRI with no known prefix.
+
+        Uses the final path/fragment segment as the local name and the segment
+        before it as a lightweight pseudo-prefix for context, so
+        ``https://identifiers.org/reactome/R-HSA-163210`` becomes
+        ``reactome:R-HSA-163210`` and ``https://purl.org/okn/frink/kg/prokn``
+        becomes ``kg:prokn``. Falls back to the full IRI if it has no usable
+        segment.
+        """
+        s = str(iri).rstrip("/#")
+        if "#" in s:
+            head, local = s.rsplit("#", 1)
+        else:
+            head, _, local = s.rpartition("/")
+        if not local:
+            return str(iri)
+        prev = head.rpartition("/")[2] if head else ""
+        # Skip a scheme/host-looking segment (``https:``, ``purl.org``) as prefix.
+        if prev and ":" not in prev and "." not in prev:
+            return f"{prev}:{local}"
+        return local
 
     def term(self, value, quote: str = '"') -> str:
         """Render a term (IRI/Literal/BNode) shortened and quoted like Java."""
@@ -91,9 +126,11 @@ class PrefixMap:
         short = self._shorten_iri(str(iri))
         if short is not None:
             return quote + short + quote
-        # An IRI with no matching prefix is emitted in full -- still quote it so a
-        # stray '(' or other special character can't break Mermaid parsing.
-        return quote + escape(str(iri)) + quote
+        # An IRI with no matching prefix is emitted in full (or, in portable mode,
+        # compacted to a synthetic CURIE so no raw URL lands in a label) -- still
+        # quote it so a stray '(' or other special character can't break Mermaid.
+        text = self._compact_iri(str(iri)) if self._compact_unknown else str(iri)
+        return quote + escape(text) + quote
 
     def _literal(self, lit: Literal, quote: str) -> str:
         dt = lit.datatype
