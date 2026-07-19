@@ -202,6 +202,7 @@ class Renderer:
         sub = expand_group_graph_pattern(exists_node.graph)
         self._add(f'subgraph {parent_id}{exist_id}["Exists Clause"]')
         self.indent += 2
+        self._add(f"style {parent_id}{exist_id} color:#000;")
         nested = Scope(prefix=exist_id)
         Namer(nested).collect(sub)
         r = Renderer(nested, self.prefixes, self.lines, self.indent, self.counters, self.max_values)
@@ -270,7 +271,7 @@ class Renderer:
         self.optional = True
         opt_id = f"optional{self.scope.prefix}{self._next('optional')}"
         self._add(f'subgraph {opt_id}["(optional)"]')
-        self._add(f"style {opt_id} fill:#bbf,stroke-dasharray: 5 5;")
+        self._add(f"style {opt_id} fill:#bbf,stroke-dasharray: 5 5,color:#000;")
         self.indent += 2
         self.visit(node.p2)
         self.indent -= 2
@@ -279,6 +280,7 @@ class Renderer:
     def _Union(self, node):
         uid = f"union{self.scope.prefix}{self._next('union')}"
         self._add(f'subgraph {uid}[" Union "]')
+        self._add(f"style {uid} color:#000;")
         self._add(f'subgraph {uid}l[" "]')
         self.indent += 2
         self._add(f"style {uid}l fill:#abf,stroke-dasharray: 3 3;")
@@ -299,7 +301,7 @@ class Renderer:
         key = f"minus{self._next('minus')}"
         self._add(f'subgraph {key}["MINUS"]')
         self.indent += 2
-        self._add(f"style {key} stroke-width:6px,fill:pink,stroke:red;")
+        self._add(f"style {key} stroke-width:6px,fill:pink,stroke:red,color:#000;")
         self.visit(node.p2)
         self.indent -= 2
         self._add("end")
@@ -308,7 +310,9 @@ class Renderer:
         gid = f"graph{self.scope.prefix}{self._next('graph')}"
         self._add(f'subgraph {gid}["{self._graph_label(node.term)}"]')
         self.indent += 2
-        self._add(f"style {gid} fill:#f3e5f5,stroke:#8e24aa,stroke-width:2px;")
+        # color:#000 forces the title text black; some viewer themes render
+        # cluster labels in a light color that's unreadable on the box fill.
+        self._add(f"style {gid} fill:#f3e5f5,stroke:#8e24aa,stroke-width:2px,color:#000;")
         # A named graph draws with its own scope so its constants are boxed
         # locally (a shared reference IRI can't live in two Mermaid subgraphs at
         # once). Variables and blank nodes stay shared with the parent scope so
@@ -341,7 +345,7 @@ class Renderer:
         key = self.service_keys[term]
         self._add(f'subgraph {key}["{iri}"]')
         self.indent += 2
-        self._add(f"style {key} stroke-width:4px;")
+        self._add(f"style {key} stroke-width:4px,color:#000;")
         self.visit(expand_group_graph_pattern(node.graph))
         self.indent -= 2
         self._add("end")

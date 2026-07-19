@@ -239,6 +239,7 @@ def test_graph_named_iri_subgraph():
     out = to_mermaid(PFX + "SELECT ?s WHERE { GRAPH ex:g { ?s ex:p ?o } }")
     assert 'subgraph graph0["GRAPH ex:g"]' in out  # IRI shortened via prefixes
     assert "fill:#f3e5f5" in out
+    assert "color:#000" in out  # title text forced black for theme readability
     assert '--"ex:p"-->' in out  # inner pattern rendered inside the box
 
 
