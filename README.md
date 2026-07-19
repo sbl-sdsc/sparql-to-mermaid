@@ -68,6 +68,14 @@ blue dashed subgraph), `UNION`, `FILTER` (with `EXISTS` and `IN`), `BIND`,
 `VALUES`, `SERVICE`, `MINUS`, aggregates, and property paths. Projected
 variables, IRIs and literals get the `projected` / `iri` / `literal` styles.
 
+Node and edge labels are always quoted and escaped, so an IRI or annotation
+containing a character Mermaid treats specially — most commonly a `(` in a full
+IRI, as in some Reactome/PubChem identifiers — can't derail the parser and leave
+the diagram rendering as raw text. Subgraph titles (`GRAPH`, `Union`,
+`(optional)`, `MINUS`, `SERVICE`, `Exists Clause`) are forced black (`color:#000`)
+so they stay readable under viewer themes that would otherwise render cluster
+labels in a light color.
+
 One deliberate difference from the Java tool: a `VALUES` clause with more than
 `max_values` (default 3) values no longer draws one node per value — it draws the
 first `max_values` and collapses the rest into a single `+N more` node, so a long
@@ -136,7 +144,7 @@ classDef iri fill:yellow;
   v9("?t1d"):::projected 
   v6("?t2d"):::projected 
   subgraph graph0["GRAPH https://purl.org/okn/frink/kg/pankgraph"]
-    style graph0 fill:#f3e5f5,stroke:#8e24aa,stroke-width:2px;
+    style graph0 fill:#f3e5f5,stroke:#8e24aa,stroke-width:2px,color:#000;
     graph0c2(["CL:0002079"]):::iri 
     graph0f0[["?b > '0^^xsd:integer' && ?a > '0^^xsd:integer' && (?a / ?b >= '2.0^^xsd:decimal' || ?a / ?b <= '0.5^^xsd:decimal')"]]
     graph0f0 --> v1
@@ -147,7 +155,7 @@ classDef iri fill:yellow;
     v7 --"pk:type_2_diabetes__OCR_GeneActivityScore_mean"--> v6
     v8 --"biolink:located_in"--> v4
     subgraph optionalgraph00["(optional)"]
-    style optionalgraph00 fill:#bbf,stroke-dasharray: 5 5;
+    style optionalgraph00 fill:#bbf,stroke-dasharray: 5 5,color:#000;
       v7 -."pk:type_1_diabetes__OCR_GeneActivityScore_mean".-> v9
     end
     graph0bind0[/"xsd:double(?t2d)"/]
@@ -208,7 +216,7 @@ classDef iri fill:yellow;
   v2("?mondo"):::projected 
   v4("?symbol"):::projected 
   subgraph graph0["GRAPH https://purl.org/okn/frink/kg/spoke-okn"]
-    style graph0 fill:#f3e5f5,stroke:#8e24aa,stroke-width:2px;
+    style graph0 fill:#f3e5f5,stroke:#8e24aa,stroke-width:2px,color:#000;
     graph0c2(["autism spectrum disorder"]):::literal 
     graph0c4(["biolink:Disease"]):::iri 
     graph0f0[["strstarts(str(?doid),'http://purl.obolibrary.org/obo/DOID_')"]]
@@ -217,15 +225,16 @@ classDef iri fill:yellow;
     v1 --"a"--> graph0c4
   end
   subgraph graph1["GRAPH https://purl.org/okn/frink/kg/ubergraph"]
-    style graph1 fill:#f3e5f5,stroke:#8e24aa,stroke-width:2px;
+    style graph1 fill:#f3e5f5,stroke:#8e24aa,stroke-width:2px,color:#000;
     graph1f1[["strstarts(str(?mondo),'http://purl.obolibrary.org/obo/MONDO_')"]]
     graph1f1 --> v2
     v2 --"skos:exactMatch"--> v1
   end
   subgraph graph2["GRAPH https://purl.org/okn/frink/kg/rdkg"]
-    style graph2 fill:#f3e5f5,stroke:#8e24aa,stroke-width:2px;
+    style graph2 fill:#f3e5f5,stroke:#8e24aa,stroke-width:2px,color:#000;
     graph2c3(["biolink:Gene"]):::iri 
     subgraph uniongraph20[" Union "]
+    style uniongraph20 color:#000;
       v3 --"biolink:related_to"--> v2
     subgraph uniongraph20r[" "]
       style uniongraph20r fill:#abf,stroke-dasharray: 3 3;
@@ -234,7 +243,7 @@ classDef iri fill:yellow;
     end
     v3 --"a"--> graph2c3
     subgraph optionalgraph20["(optional)"]
-    style optionalgraph20 fill:#bbf,stroke-dasharray: 5 5;
+    style optionalgraph20 fill:#bbf,stroke-dasharray: 5 5,color:#000;
       v3 -."rdfs:label".-> v4
     end
   end
