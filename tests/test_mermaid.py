@@ -157,7 +157,19 @@ def test_variadic_builtin_args_are_rendered():
 def test_values_node():
     out = to_mermaid(PFX + "SELECT ?s WHERE { VALUES ?s { ex:a ex:b } ?s ex:p ?o }")
     assert "VALUES ?s" in out
-    assert "[/VALUES" in out
+    # the label is quoted so annotations/special characters can't break parsing
+    assert '[/"VALUES ?s"/]' in out
+
+
+def test_unshortened_iri_node_and_edge_are_quoted():
+    # An IRI with no matching prefix is emitted in full; it must still be quoted
+    # (node label and edge-label predicate alike) so a stray '(' -- as in some
+    # Reactome/PubChem IRIs -- can't break Mermaid parsing.
+    out = to_mermaid(
+        "SELECT ?s WHERE { ?s <http://ex/p> <http://ex/o(1)> }", well_known=False
+    )
+    assert '(["http://ex/o(1)"])' in out
+    assert '--"http://ex/p"-->' in out
 
 
 def test_values_iri_has_no_orphan_constant_node():
@@ -166,7 +178,7 @@ def test_values_iri_has_no_orphan_constant_node():
     # registered it with as_node=True, producing a duplicate `cN([...]):::iri`
     # with no edges alongside the value node that _values() draws itself.
     out = to_mermaid(PFX + "SELECT ?s WHERE { VALUES ?sub { ex:x } ?s ex:p ?sub }")
-    assert "[/VALUES ?sub" in out
+    assert '[/"VALUES ?sub"/]' in out
     # the value appears exactly once (only inside the VALUES value node)
     assert out.count("ex:x") == 1
     # ex:x is drawn only as a VALUES value node, never as a styled iri constant
@@ -180,7 +192,7 @@ _MANY_VALUES = PFX + f"SELECT ?s WHERE {{ VALUES ?s {{ {_TWELVE} }} ?s ex:p ?o }
 
 def test_values_collapses_long_list_by_default():
     out = to_mermaid(_MANY_VALUES)  # default max_values=3
-    assert "[/VALUES ?s/]" in out
+    assert '[/"VALUES ?s"/]' in out
     # exactly 3 value nodes are drawn, then one "+N more" summary node
     assert out.count("([\"ex:v") == 3
     assert "([+9 more])" in out

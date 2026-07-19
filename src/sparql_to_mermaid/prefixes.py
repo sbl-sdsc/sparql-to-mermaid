@@ -91,7 +91,9 @@ class PrefixMap:
         short = self._shorten_iri(str(iri))
         if short is not None:
             return quote + short + quote
-        return str(iri)
+        # An IRI with no matching prefix is emitted in full -- still quote it so a
+        # stray '(' or other special character can't break Mermaid parsing.
+        return quote + escape(str(iri)) + quote
 
     def _literal(self, lit: Literal, quote: str) -> str:
         dt = lit.datatype

@@ -241,7 +241,9 @@ class Renderer:
                     names.append(str(var))
         names.sort()
         header = " ".join(f"?{n}" for n in names)
-        self._add(f"{bind_id}[/VALUES {header}/]")
+        # Quote the label so an annotated or unusual header (parentheses, etc.)
+        # can't derail Mermaid's parser -- matches the quoted BIND node below.
+        self._add(f'{bind_id}[/"VALUES {header}"/]')
         for n in names:
             self._add(f"{bind_id}-->{self.scope.var_id(n)}")
         vals = [val for binding in node.res for val in binding.values() if val is not None]
